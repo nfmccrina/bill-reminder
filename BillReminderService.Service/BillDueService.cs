@@ -22,7 +22,7 @@ namespace BillReminderService.Service
         {
             foreach (BillDueResult billDueResult in _billParser
                 .ParseBillList(billData)
-                .Select(b => _billDueCalculator.IsBillDue(b))
+                .Select(b => _billDueCalculator.IsBillDue(b, DateTime.Now))
                 .Where(result => result.IsBillDue))
             {
                 foreach (INotifier output in _notificationOutputs)

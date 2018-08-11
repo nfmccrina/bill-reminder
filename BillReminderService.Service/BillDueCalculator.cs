@@ -8,7 +8,7 @@ namespace BillReminderService.Service
 {
     public class BillDueCalculator : IBillDueCalculator
     {
-        public BillDueResult IsBillDue(Bill bill)
+        public BillDueResult IsBillDue(Bill bill, DateTime currentDate)
         {
             BillDueResult result = new BillDueResult()
             {
@@ -16,16 +16,14 @@ namespace BillReminderService.Service
                 ReminderMessage = ""
             };
 
-            IEnumerable<int> reminders = bill.ReminderMessage
-                .Split(';')
-                .Where(s => int.TryParse(s, out var i))
-                .Select(s => int.Parse(s))
+            IEnumerable<int> reminders = bill
+                .ReminderIntervals
                 .Where(i => i > 0 && i <= 31)
                 .OrderByDescending(i => i);
 
             foreach (int reminder in reminders)
             {
-                if (isReminderNeeded(bill.DayOfMonth, reminder))
+                if (isReminderNeeded(bill.DayOfMonth, reminder, currentDate))
                 {
                     result.IsBillDue = true;
                     result.ReminderMessage = string.Format("Reminder: {0} payment is due in {1} days.", bill.Name, reminder);
@@ -36,9 +34,9 @@ namespace BillReminderService.Service
             return result;
         }
 
-        private bool isReminderNeeded(int day, int reminder)
+        private bool isReminderNeeded(int day, int reminder, DateTime currentDate)
         {
-            return day - DateTime.Now.Day == reminder;
+            return day - currentDate.Day == reminder;
         }
     }
 }

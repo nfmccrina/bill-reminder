@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace BillReminderService.Service.Models
@@ -10,7 +11,7 @@ namespace BillReminderService.Service.Models
         [JsonProperty("dayOfMonth")]
         public int DayOfMonth { get; set; }
 
-        [JsonProperty("reminder")]
-        public string ReminderMessage { get; set; }
+        [JsonProperty("reminderIntervals")]
+        public IEnumerable<int> ReminderIntervals { get; set; }
     }
 }
