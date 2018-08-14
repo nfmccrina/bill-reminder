@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BillReminderService.Service.Interfaces;
 using BillReminderService.Service.Models;
+using Serilog;
 
 namespace BillReminderService.Service
 {
@@ -20,15 +21,18 @@ namespace BillReminderService.Service
         }
         public async Task ProcessBills(string billData)
         {
-            foreach (BillDueResult billDueResult in _billParser
+            string message = _billParser
                 .ParseBillList(billData)
                 .Select(b => _billDueCalculator.IsBillDue(b, DateTime.Now))
-                .Where(result => result.IsBillDue))
+                .Where(result => result.IsBillDue)
+                .Aggregate(
+                    "Hi, this is a reminder that the following bills are due:",
+                    (valueSoFar, result) => string.Format("{0}{1}{2}{3}", valueSoFar, Environment.NewLine, Environment.NewLine, result.ReminderMessage)
+                );
+                
+            foreach (INotifier output in _notificationOutputs)
             {
-                foreach (INotifier output in _notificationOutputs)
-                {
-                    await output.sendNotification(billDueResult.ReminderMessage);
-                }
+                await output.sendNotification(message);
             }
         }
 

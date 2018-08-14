@@ -1,55 +1,46 @@
+using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Mail;
 using System.Threading.Tasks;
 using BillReminderService.Service.Interfaces;
-using BillReminderService.Service.Models;
+using BillReminderService.Service.Models.Configuration;
+using MailKit.Net.Smtp;
+using MimeKit;
 
 namespace BillReminderService
 {
     public class EmailNotifier : INotifier
     {
-        public EmailNotifier(ICredentialsByHost credentials, EmailNotificationSettings settings)
+        public EmailNotifier(EmailNotificationSettings settings)
         {
-            _credentials = credentials;
             _settings = settings;
         }
 
         public async Task sendNotification(string message)
         {
-            SmtpClient client = BuildEmailClient();
-
-            await client.SendMailAsync(BuildMailMessage(message));
-        }
-
-        private SmtpClient BuildEmailClient()
-        {
-            SmtpClient client = new SmtpClient(_settings.SMTPHost, _settings.SMTPPort);
-            
-            client.UseDefaultCredentials = false;
-            client.EnableSsl = true;
-            client.Credentials = _credentials; //new NetworkCredential("billremindersvc@gmail.com", "4H4wn62V");
-
-            return client;
-        }
-
-        private MailMessage BuildMailMessage(string text)
-        {
-            MailMessage message = new MailMessage();
-            
-            foreach (var addr in _settings.ToAddresses.Select(addr => new MailAddress(addr)))
+            using (var client = new SmtpClient())
             {
-                message.To.Add(addr);
+                client.Connect(_settings.SMTPHost, _settings.SMTPPort, false);
+                client.Authenticate(_settings.Credentials);
+                await client.SendAsync(BuildMailMessage(message));
+                await client.DisconnectAsync(true);
+                    
             }
+        }
 
-            message.Sender = new MailAddress(_settings.FromAddress);
+        private MimeMessage BuildMailMessage(string text)
+        {
+            MimeMessage message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_settings.FromAddress.Item1, _settings.FromAddress.Item2));
+            message.To.AddRange(_settings.ToAddresses.Select(t => new MailboxAddress(t.Item1, t.Item2)));
             message.Subject = "BillReminderService: Bill Due Reminder";
-            message.Body = text;
+            message.Body = new TextPart("plain")
+            {
+                Text = text
+            };
 
             return message;
         }
-
-        private ICredentialsByHost _credentials;
+        
         private EmailNotificationSettings _settings;
     }
 }
